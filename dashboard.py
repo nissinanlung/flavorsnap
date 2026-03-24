@@ -1,5 +1,6 @@
 from src.ui import theme_manager, ImageViewer, LoadingUI, SkeletonCard
 from src.core import ProgressClassifier
+from src.utils.memory_manager import MemoryManager
 import panel as pn
 import torch
 from PIL import Image
@@ -50,6 +51,7 @@ def classify(event=None):
     try:
         loading_overlay.visible = True
         output.object = "⏳ Starting analysis..."
+        MemoryManager.log_usage("Start Classify")
         
         # Run classification with progress updates
         predicted_class, image = classifier.classify_with_progress(
@@ -69,6 +71,8 @@ def classify(event=None):
         output.object = f"❌ Error: {str(e)}"
     finally:
         loading_overlay.visible = False
+        classifier.cleanup()
+        MemoryManager.log_usage("End Classify")
 
 run_button = pn.widgets.Button(name='Classify Dish 🍽️', button_type='primary', height=45)
 run_button.on_click(classify)
