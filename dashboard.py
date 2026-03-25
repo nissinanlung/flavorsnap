@@ -1,174 +1,220 @@
-from src.ui import theme_manager, ImageViewer, LoadingUI, SkeletonCard
-from src.core import ProgressClassifier
-from src.utils.memory_manager import MemoryManager
 import panel as pn
 import torch
+import torchvision.transforms as transforms
+from torchvision import models
 from PIL import Image
 import io
 import os
 import sys
+from pathlib import Path
 
-# Ensure src module is visible
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+# Add src to Python path for imports
+sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
-from src.ui.main_interface import MainInterface
-from src.ui.keyboard_manager import KeyboardManager
+from src.ui.preprocessing_controls import PreprocessingControls
+from src.ui.confidence_chart import create_confidence_chart
+from src.core.image_enhancer import ImageEnhancer
+from src.core.classifier import FlavorSnapClassifier
 
-# Configure Panel Extension and Theme Integration
-theme_manager.apply_to_app()
-pn.extension(
-    css_files=['static/css/image_viewer.css', 'static/css/loading.css'],
-    js_files={
-        'image_viewer': 'static/js/image_viewer.js',
-        'progress_tracker': 'static/js/progress_tracker.js'
-    }
-)
+# Configure Panel extensions with custom CSS and JS
+pn.extension('css', js_files={
+    'charts': ['static/js/charts.js']
+}, css_files={
+    'charts': ['static/css/charts.css']
+})
 
-# Inject JS for shortcuts natively
-with open('static/js/keyboard_shortcuts.js', 'r') as f:
-    js_code = f.read()
+# Load model using the enhanced classifier
+classifier = FlavorSnapClassifier()
+model = classifier.model
+class_names = classifier.class_names
 
-# Custom CSS and the injected script
-shortcut_js = pn.pane.HTML(
-    f"<style>.keyboard-target {{ display: none !important; }}</style><script>{js_code}</script>",
-    width=0, height=0, margin=0, sizing_mode='fixed'
-)
+# Transforms
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+])
 
-# Load model
-model_path = 'models/best_model.pth'
-class_names = ['Akara', 'Bread', 'Egusi', 'Moi Moi', 'Rice and Stew', 'Yam']
-os.makedirs('models', exist_ok=True)
-if os.path.exists(model_path):
-    model = models.resnet18(weights='IMAGENET1K_V1')
-    model.fc = torch.nn.Linear(model.fc.in_features, len(class_names))
-    model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
-    model.eval()
-else:
-    model = None
-
-# Save image function
+# Save image to correct folder
 def save_image(image_obj, predicted_class, image_name="uploaded_image.jpg"):
     save_dir = f"data/train/{predicted_class}"
     os.makedirs(save_dir, exist_ok=True)
     image_path = os.path.join(save_dir, image_name)
     image_obj.save(image_path)
-    return image_path
 
-# State variables
-current_image = None
-current_predicted_class = None
+# Panel UI
+image_input = pn.widgets.FileInput(accept='image/*')
+output = pn.pane.Markdown("Upload an image of food 🍲")
+image_preview = pn.pane.Image(width=300, height=300, visible=False)
+processed_preview = pn.pane.Image(width=300, height=300, visible=False)
+spinner = pn.indicators.LoadingSpinner(value=False, width=50)
 
-# Interface Setup
-def classify(event=None):
-    global current_image, current_predicted_class
-    if ui.image_input.value is None and current_image is None:
-        ui.output.object = "⚠️ Please upload an image first."
-        ui.image_preview.visible = False
+# Create confidence chart component
+confidence_chart = create_confidence_chart(animate=True)
+confidence_chart_component = confidence_chart.create_layout()
+
+# Preprocessing controls
+preprocessing_controls = PreprocessingControls()
+preprocessing_panel = preprocessing_controls.create_layout()
+
+# Global variables
+original_image = None
+processed_image = None
+
+def on_image_update(image):
+    """Handle image updates from preprocessing controls."""
+    global processed_image
+    processed_image = image
+    if image:
+        processed_preview.object = image
+        processed_preview.visible = True
+
+def handle_image_upload():
+    """Handle image upload and initialize preprocessing."""
+    global original_image, processed_image
+    
+    if image_input.value is None:
         return
-        
+    
     try:
-        if ui.image_input.value is not None:
-             image = Image.open(io.BytesIO(ui.image_input.value)).convert('RGB')
-             current_image = image
-        else:
-             image = current_image
-
-        # Update preview
-        ui.image_preview.object = image
-        ui.image_preview.visible = True
-
-        # Start spinner
-        ui.spinner.value = True
-        ui.output.object = "🔍 Classifying..."
-
-        if model is None:
-            ui.output.object = "❌ Model weights not found. (Dummy run)"
-            predicted_class = class_names[0]
-        else:
-            # Transform and predict
-            img_tensor = transform(image).unsqueeze(0)
-            with torch.no_grad():
-                outputs = model(img_tensor)
-                _, pred = torch.max(outputs, 1)
-                predicted_class = class_names[pred.item()]
-
-        current_predicted_class = predicted_class
+        # Load the image
+        original_image = Image.open(io.BytesIO(image_input.value)).convert('RGB')
+        processed_image = original_image.copy()
         
-        # Save image
-        saved_path = save_image(image, predicted_class)
-        ui.output.object = f"✅ Identified as **{predicted_class}**. Image saved!"
+        # Update previews
+        image_preview.object = original_image
+        image_preview.visible = True
+        processed_preview.object = processed_image
+        processed_preview.visible = True
         
-        # Add to history
-        history_item = f"- Identified **{predicted_class}**"
-        current_history = ui.history_panel[1].object
-        if current_history == "No history yet.":
-            ui.history_panel[1].object = history_item
-        else:
-            ui.history_panel[1].object = current_history + "\n" + history_item
-            
+        # Load image into preprocessing controls
+        preprocessing_controls.load_image(original_image)
+        preprocessing_controls.on_image_update = on_image_update
+        
+        output.object = "📸 Image loaded! Use preprocessing controls to enhance, then classify."
+        
     except Exception as e:
-        ui.output.object = f"❌ Error: {str(e)}"
+        output.object = f"❌ Error loading image: {str(e)}"
+
+def classify(event=None):
+    global original_image, processed_image
+    
+    if image_input.value is None:
+        output.object = "⚠️ Please upload an image first."
+        image_preview.visible = False
+        processed_preview.visible = False
+        return
+    
+    if processed_image is None:
+        output.object = "⚠️ Please wait for image to load or apply preprocessing."
+        return
+    
+    try:
+        # Start spinner
+        spinner.value = True
+        output.object = "🔍 Classifying..."
+
+        # Use processed image for classification
+        image_to_classify = processed_image
+
+        # Get preprocessing parameters
+        preprocessing_params = preprocessing_controls.get_enhancement_params()
+
+        # Use enhanced classifier for detailed results
+        result = classifier.classify_image(image_to_classify, preprocessing_params)
+        
+        # Extract results
+        predicted_class = result['predicted_class']
+        confidence_score = result['confidence']
+        all_probabilities = result['all_probabilities']
+        
+        # Update confidence chart with all probabilities
+        confidence_chart.update_predictions(all_probabilities, predicted_class)
+
+        # Save processed image
+        save_image(image_to_classify, predicted_class)
+        
+        # Create enhanced result message
+        confidence_percentage = confidence_score * 100
+        entropy = result['metadata']['entropy']
+        avg_confidence = result['metadata']['average_confidence']
+        
+        result_message = f"""
+✅ **Classification Result: {predicted_class}**
+
+### 🎯 Confidence Scores
+- **Top Prediction:** {predicted_class} ({confidence_percentage:.1f}%)
+- **Model Uncertainty (Entropy):** {entropy:.3f}
+- **Average Confidence:** {avg_confidence:.1f}%
+
+### 📊 Preprocessing Parameters Applied:
+- **Brightness**: {preprocessing_params['brightness']:.1f}
+- **Contrast**: {preprocessing_params['contrast']:.1f}
+- **Rotation**: {preprocessing_params['rotation']:.0f}°
+- **Aspect Ratio**: {preprocessing_params.get('aspect_ratio', 'Original')}
+- **Crop**: {preprocessing_params.get('crop_box', 'None')}
+
+💾 Processed image saved to training data!
+
+📈 **View the confidence chart below** to see probabilities for all food classes.
+        """
+        
+        output.object = result_message
+        
+    except Exception as e:
+        output.object = f"❌ Error: {str(e)}"
+        # Reset chart on error
+        confidence_chart.reset()
     finally:
-        ui.spinner.value = False
+        spinner.value = False
 
-def manual_export():
-    if current_image and current_predicted_class:
-        save_image(current_image, current_predicted_class, image_name="manual_export.jpg")
-        ui.output.object = f"💾 Manually exported results for **{current_predicted_class}**"
+run_button = pn.widgets.Button(name='Classify', button_type='primary')
+run_button.on_click(classify)
 
-def handle_shortcut(combo):
-    global current_image, current_predicted_class
-    if combo == 'enter':
-        classify()
-    elif combo == 'escape':
-        ui.clear_image()
-        current_image = None
-        current_predicted_class = None
-    elif combo == 'ctrl+s':
-        manual_export()
-    elif combo == 'ctrl+h':
-        ui.toggle_history()
-    elif combo == 'ctrl+d':
-        # Toggle dark mode
-        if 'dark-theme' in app.css_classes:
-            app.css_classes = [c for c in app.css_classes if c != 'dark-theme']
-            try:
-                pn.config.theme = 'default'
-            except:
-                pass
-        else:
-            app.css_classes = app.css_classes + ['dark-theme']
-            try:
-                pn.config.theme = 'dark'
-            except:
-                pass
+# Setup image upload handler
+image_input.param.watch(lambda event: handle_image_upload(), 'value')
 
-
-ui = MainInterface(classify_fn=classify, save_image_fn=manual_export)
-keyboard_manager = KeyboardManager(handle_shortcut)
-
-# Header
-header = pn.Row(
-    pn.pane.Markdown("# 🍽️ FlavorSnap", styles={'margin-top': '0px', 'flex': '1'}),
-    theme_toggle,
-    sizing_mode='stretch_width',
-    css_classes=['header']
-)
-
-# Dashboard Layout
-app = pn.Column(
-    shortcut_js,
-    keyboard_manager.get_widget(),
-    ui.get_layout(),
-    css_classes=[]
-)
-
-# App Assembly
-app = pn.Column(
-    header,
+# Create layout with preprocessing controls
+upload_section = pn.Column(
+    "## 📤 Upload Image",
+    image_input,
     pn.layout.Divider(),
-    dashboard_body,
-    sizing_mode='stretch_width'
+)
+
+preview_section = pn.Column(
+    "## 🖼️ Image Preview",
+    pn.Row(
+        pn.Column("### Original", image_preview),
+        pn.Column("### Processed", processed_preview),
+    ),
+)
+
+controls_section = pn.Column(
+    "## 🎨 Preprocessing Controls",
+    preprocessing_panel,
+)
+
+classification_section = pn.Column(
+    "## 🍽️ Classification",
+    pn.Row(run_button, spinner),
+    output,
+)
+
+confidence_section = pn.Column(
+    "## 📈 Confidence Analysis",
+    confidence_chart_component,
+)
+
+app = pn.Row(
+    pn.Column(
+        upload_section,
+        preview_section,
+        classification_section,
+        confidence_section,
+        sizing_mode='stretch_width',
+        max_width=800,
+    ),
+    controls_section,
+    sizing_mode='stretch_width',
 )
 
 app = pn.Row(
