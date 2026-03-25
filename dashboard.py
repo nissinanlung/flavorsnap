@@ -13,14 +13,17 @@ sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
 from src.ui.preprocessing_controls import PreprocessingControls
 from src.ui.confidence_chart import create_confidence_chart
+from src.ui.error_messages import handle_and_display_error, create_error_banner, setup_error_styles
 from src.core.image_enhancer import ImageEnhancer
 from src.core.classifier import FlavorSnapClassifier
+from src.utils.error_handler import handle_user_errors, validate_image_file, UserFriendlyError
 
 # Configure Panel extensions with custom CSS and JS
 pn.extension('css', js_files={
     'charts': ['static/js/charts.js']
 }, css_files={
-    'charts': ['static/css/charts.css']
+    'charts': ['static/css/charts.css'],
+    'error': ['static/css/error.css']
 })
 
 # Load model using the enhanced classifier
@@ -48,6 +51,10 @@ image_preview = pn.pane.Image(width=300, height=300, visible=False)
 processed_preview = pn.pane.Image(width=300, height=300, visible=False)
 spinner = pn.indicators.LoadingSpinner(value=False, width=50)
 
+# Create error display components
+error_banner = create_error_banner()
+error_banner.visible = False
+
 # Create confidence chart component
 confidence_chart = create_confidence_chart(animate=True)
 confidence_chart_component = confidence_chart.create_layout()
@@ -68,6 +75,7 @@ def on_image_update(image):
         processed_preview.object = image
         processed_preview.visible = True
 
+@handle_user_errors("image upload and processing")
 def handle_image_upload():
     """Handle image upload and initialize preprocessing."""
     global original_image, processed_image
@@ -75,27 +83,33 @@ def handle_image_upload():
     if image_input.value is None:
         return
     
-    try:
-        # Load the image
-        original_image = Image.open(io.BytesIO(image_input.value)).convert('RGB')
-        processed_image = original_image.copy()
-        
-        # Update previews
-        image_preview.object = original_image
-        image_preview.visible = True
-        processed_preview.object = processed_image
-        processed_preview.visible = True
-        
-        # Load image into preprocessing controls
-        preprocessing_controls.load_image(original_image)
-        preprocessing_controls.on_image_update = on_image_update
-        
-        output.object = "📸 Image loaded! Use preprocessing controls to enhance, then classify."
-        
-    except Exception as e:
-        output.object = f"❌ Error loading image: {str(e)}"
+    # Validate image file first
+    is_valid, validation_error = validate_image_file(image_input.value)
+    if not is_valid:
+        raise validation_error
+    
+    # Clear any previous errors
+    error_banner.visible = False
+    
+    # Load the image
+    original_image = Image.open(io.BytesIO(image_input.value)).convert('RGB')
+    processed_image = original_image.copy()
+    
+    # Update previews
+    image_preview.object = original_image
+    image_preview.visible = True
+    processed_preview.object = processed_image
+    processed_preview.visible = True
+    
+    # Load image into preprocessing controls
+    preprocessing_controls.load_image(original_image)
+    preprocessing_controls.on_image_update = on_image_update
+    
+    output.object = "📸 Image loaded! Use preprocessing controls to enhance, then classify."
 
+@handle_user_errors("image classification")
 def classify(event=None):
+    """Classify the uploaded image with preprocessing."""
     global original_image, processed_image
     
     if image_input.value is None:
@@ -108,37 +122,39 @@ def classify(event=None):
         output.object = "⚠️ Please wait for image to load or apply preprocessing."
         return
     
-    try:
-        # Start spinner
-        spinner.value = True
-        output.object = "🔍 Classifying..."
+    # Clear any previous errors
+    error_banner.visible = False
+    
+    # Start spinner
+    spinner.value = True
+    output.object = "🔍 Classifying..."
 
-        # Use processed image for classification
-        image_to_classify = processed_image
+    # Use processed image for classification
+    image_to_classify = processed_image
 
-        # Get preprocessing parameters
-        preprocessing_params = preprocessing_controls.get_enhancement_params()
+    # Get preprocessing parameters
+    preprocessing_params = preprocessing_controls.get_enhancement_params()
 
-        # Use enhanced classifier for detailed results
-        result = classifier.classify_image(image_to_classify, preprocessing_params)
-        
-        # Extract results
-        predicted_class = result['predicted_class']
-        confidence_score = result['confidence']
-        all_probabilities = result['all_probabilities']
-        
-        # Update confidence chart with all probabilities
-        confidence_chart.update_predictions(all_probabilities, predicted_class)
+    # Use enhanced classifier for detailed results
+    result = classifier.classify_image(image_to_classify, preprocessing_params)
+    
+    # Extract results
+    predicted_class = result['predicted_class']
+    confidence_score = result['confidence']
+    all_probabilities = result['all_probabilities']
+    
+    # Update confidence chart with all probabilities
+    confidence_chart.update_predictions(all_probabilities, predicted_class)
 
-        # Save processed image
-        save_image(image_to_classify, predicted_class)
-        
-        # Create enhanced result message
-        confidence_percentage = confidence_score * 100
-        entropy = result['metadata']['entropy']
-        avg_confidence = result['metadata']['average_confidence']
-        
-        result_message = f"""
+    # Save processed image
+    save_image(image_to_classify, predicted_class)
+    
+    # Create enhanced result message
+    confidence_percentage = confidence_score * 100
+    entropy = result['metadata']['entropy']
+    avg_confidence = result['metadata']['average_confidence']
+    
+    result_message = f"""
 ✅ **Classification Result: {predicted_class}**
 
 ### 🎯 Confidence Scores
@@ -156,22 +172,38 @@ def classify(event=None):
 💾 Processed image saved to training data!
 
 📈 **View the confidence chart below** to see probabilities for all food classes.
-        """
-        
-        output.object = result_message
-        
+    """
+    
+    output.object = result_message
+    spinner.value = False
+
+# Setup image upload handler with error handling
+def handle_image_upload_with_error_handling():
+    """Wrapper function to handle image upload with error display."""
+    try:
+        handle_image_upload()
+    except UserFriendlyError as e:
+        handle_and_display_error(e, "image upload", handle_image_upload_with_error_handling)
     except Exception as e:
-        output.object = f"❌ Error: {str(e)}"
-        # Reset chart on error
-        confidence_chart.reset()
-    finally:
+        handle_and_display_error(e, "image upload", handle_image_upload_with_error_handling)
+
+image_input.param.watch(lambda event: handle_image_upload_with_error_handling(), 'value')
+
+# Setup classification handler with error handling
+def classify_with_error_handling(event):
+    """Wrapper function to handle classification with error display."""
+    try:
+        classify(event)
+    except UserFriendlyError as e:
+        handle_and_display_error(e, "classification", classify_with_error_handling)
         spinner.value = False
+    except Exception as e:
+        handle_and_display_error(e, "classification", classify_with_error_handling)
+        spinner.value = False
+        confidence_chart.reset()
 
 run_button = pn.widgets.Button(name='Classify', button_type='primary')
-run_button.on_click(classify)
-
-# Setup image upload handler
-image_input.param.watch(lambda event: handle_image_upload(), 'value')
+run_button.on_click(classify_with_error_handling)
 
 # Create layout with preprocessing controls
 upload_section = pn.Column(
@@ -208,6 +240,7 @@ app = pn.Row(
     pn.Column(
         upload_section,
         preview_section,
+        error_banner,  # Add error banner to the layout
         classification_section,
         confidence_section,
         sizing_mode='stretch_width',
