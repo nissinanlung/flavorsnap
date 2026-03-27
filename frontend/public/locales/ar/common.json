@@ -26,6 +26,25 @@
   "export_csv": "Export CSV",
   "clear_history": "مسح السجل",
   "no_history_yet": "ستظهر أطعمتك المصنفة هنا.",
-  "confirm_clear_history": "هل أنت متأكد من مسح تاريخ التصنيف الخاص بك؟"
-  "reset": "إعادة تعيين"
+  "confirm_clear_history": "هل أنت متأكد من مسح تاريخ التصنيف الخاص بك؟",
+  "toggle_dark_mode": "تبديل الوضع الداكن",
+  "navigation_home": "الصفحة الرئيسية",
+  "navigation_blockchain": "بلوكتشين",
+  "navigation_about": "معلومات",
+  "navigation_contact": "اتصل بنا",
+  "skip_to_main_content": "انتقل إلى المحتوى الرئيسي",
+  "menu_toggle": "تبديل القائمة",
+  "single_image_classification": "تصنيف الصورة الواحدة",
+  "upload_food_image_description": "قم بتحميل صورة غذائية للحصول على نتائج التصنيف الفورية",
+  "back_to_options": "← العودة إلى خيارات التصنيف",
+  "select_food_image": "حدد صورة غذائية",
+  "processing": "جارٍ المعالجة...",
+  "classify_image": "تصنيف الصورة",
+  "classification_result_title": "نتيجة التصنيف",
+  "predicted_dish": "الطبق المتنبأ به:",
+  "confidence": "الثقة:",
+  "processing_time": "وقت المعالجة:",
+  "failed_connect_server": "فشل الاتصال بالخادم",
+  "processing_failed": "فشلت المعالجة",
+  "preview_alt": "معاينة"
 }
