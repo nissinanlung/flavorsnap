@@ -26,6 +26,25 @@
   "export_csv": "Export CSV",
   "clear_history": "Clear History",
   "no_history_yet": "Your classified foods will appear here.",
-  "confirm_clear_history": "Are you sure you want to clear your classification history?"
-  "reset": "Reset"
+  "confirm_clear_history": "Are you sure you want to clear your classification history?",
+  "toggle_dark_mode": "Toggle dark mode",
+  "navigation_home": "Home",
+  "navigation_blockchain": "Blockchain",
+  "navigation_about": "About",
+  "navigation_contact": "Contact",
+  "skip_to_main_content": "Skip to main content",
+  "menu_toggle": "Toggle menu",
+  "single_image_classification": "Single Image Classification",
+  "upload_food_image_description": "Upload a food image to get instant classification results",
+  "back_to_options": "← Back to Classification Options",
+  "select_food_image": "Select Food Image",
+  "processing": "Processing...",
+  "classify_image": "Classify Image",
+  "classification_result_title": "Classification Result",
+  "predicted_dish": "Predicted Dish:",
+  "confidence": "Confidence:",
+  "processing_time": "Processing Time:",
+  "failed_connect_server": "Failed to connect to server",
+  "processing_failed": "Processing failed",
+  "preview_alt": "Preview"
 }

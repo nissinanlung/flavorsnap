@@ -2,17 +2,20 @@ import { useRouter } from "next/router";
 import { useTranslation } from "next-i18next";
 import { analytics } from "@/utils/analytics";
 
-const localeLabels: Record<string, string> = {
-  en: "English",
-  fr: "Français",
-  ar: "العربية",
-  yo: "Yorùbá",
-};
-
 export default function LanguageSwitcher() {
   const router = useRouter();
   const { t } = useTranslation("common");
   const { locale, locales, pathname, asPath, query } = router;
+
+  const getLanguageLabel = (loc: string) => {
+    const languageKeys: Record<string, string> = {
+      en: "language_en",
+      fr: "language_fr",
+      ar: "language_ar",
+      yo: "language_yo",
+    };
+    return t(languageKeys[loc] || loc);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLocale = e.target.value;
@@ -37,7 +40,7 @@ export default function LanguageSwitcher() {
       >
         {locales?.map((loc) => (
           <option className="bg-black" key={loc} value={loc}>
-            {localeLabels[loc] || loc}
+            {getLanguageLabel(loc)}
           </option>
         ))}
       </select>

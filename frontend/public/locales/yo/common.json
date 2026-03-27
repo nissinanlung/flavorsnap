@@ -26,6 +26,25 @@
   "export_csv": "Export CSV",
   "clear_history": "Mú ìtàn kúrò",
   "no_history_yet": "Oúnjẹ rẹ yóò hàn níhìn-ín.",
-  "confirm_clear_history": "Ǹjẹ́ ó dá ẹ lójú pé o fẹ́ mú ìtàn oúnjẹ rẹ kúrò?"
-  "reset": "Tun bẹrẹ"
+  "confirm_clear_history": "Ǹjẹ́ ó dá ẹ lójú pé o fẹ́ mú ìtàn oúnjẹ rẹ kúrò?",
+  "toggle_dark_mode": "Tun bẹrẹ ìrànwọ̀-dúdú",
+  "navigation_home": "Ìbùkọ̀",
+  "navigation_blockchain": "Blockchain",
+  "navigation_about": "Nípa wa",
+  "navigation_contact": "Ọ̀ràn",
+  "skip_to_main_content": "Lọ sí ọ̀rọ̀ akọkọ",
+  "menu_toggle": "Tun bẹrẹ àti",
+  "single_image_classification": "Ìpínlẹ̀ àwòrán ìkan",
+  "upload_food_image_description": "Gbé àwòrán oúnjẹ wá láti gba àbájáde ìpínlẹ̀ náà lójìjì",
+  "back_to_options": "← Padà sí àwọn àpilẹ̀kọ ìpínlẹ̀",
+  "select_food_image": "Yàn àwòrán oúnjẹ",
+  "processing": "Ń ṣe iṣẹ́...",
+  "classify_image": "Pínlẹ̀ àwòrán",
+  "classification_result_title": "Àbájáde ìpínlẹ̀",
+  "predicted_dish": "Oúnjẹ tí ó hàn:",
+  "confidence": "Ìgbẹ́kẹ̀lé:",
+  "processing_time": "Àkókò ìṣiṣẹ:",
+  "failed_connect_server": "Àìfetí sí ẹ̀rọ",
+  "processing_failed": "Iṣẹ́ kùnà",
+  "preview_alt": "Àyẹ̀wò"
 }

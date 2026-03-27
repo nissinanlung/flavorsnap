@@ -26,6 +26,25 @@
   "export_csv": "Exporter CSV",
   "clear_history": "Effacer l'historique",
   "no_history_yet": "Vos aliments classés apparaîtront ici.",
-  "confirm_clear_history": "Voulez-vous vraiment effacer votre historique de classification ?"
-  "reset": "Réinitialiser"
+  "confirm_clear_history": "Voulez-vous vraiment effacer votre historique de classification ?",
+  "toggle_dark_mode": "Basculer le mode sombre",
+  "navigation_home": "Accueil",
+  "navigation_blockchain": "Blockchain",
+  "navigation_about": "À propos",
+  "navigation_contact": "Contact",
+  "skip_to_main_content": "Aller au contenu principal",
+  "menu_toggle": "Basculer le menu",
+  "single_image_classification": "Classification d'image unique",
+  "upload_food_image_description": "Téléchargez une image alimentaire pour obtenir des résultats de classification instantanée",
+  "back_to_options": "← Retour aux options de classification",
+  "select_food_image": "Sélectionner une image alimentaire",
+  "processing": "Traitement...",
+  "classify_image": "Classer l'image",
+  "classification_result_title": "Résultat de la classification",
+  "predicted_dish": "Plat prédit:",
+  "confidence": "Confiance:",
+  "processing_time": "Temps de traitement:",
+  "failed_connect_server": "Impossible de se connecter au serveur",
+  "processing_failed": "Le traitement a échoué",
+  "preview_alt": "Aperçu"
 }

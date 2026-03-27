@@ -22,7 +22,7 @@ const Layout = ({ children, title, description }: LayoutProps) => {
     <button
       onClick={toggleTheme}
       className="p-2 rounded-md hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-accent"
-      aria-label="Toggle dark mode"
+      aria-label={t("toggle_dark_mode")}
     >
       {theme === 'dark' ? (
         /* Sun Icon */
@@ -72,6 +72,7 @@ const Layout = ({ children, title, description }: LayoutProps) => {
             <button
               onClick={toggleSidebar}
               className="p-2 rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-accent"
+              aria-label={t("menu_toggle")}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -90,10 +91,10 @@ const Layout = ({ children, title, description }: LayoutProps) => {
             <div className="flex items-center space-x-8">
               <span className="text-2xl font-bold text-accent">FlavorSnap 🍛</span>
               <nav className="flex space-x-4">
-                <a href="/" className="text-accent font-medium px-3 py-2 text-sm">Home</a>
-                <a href="/blockchain" className="hover:text-accent px-3 py-2 text-sm font-medium transition-colors">Blockchain</a>
-                <a href="/about" className="hover:text-accent px-3 py-2 text-sm font-medium transition-colors">About</a>
-                <a href="/contact" className="hover:text-accent px-3 py-2 text-sm font-medium transition-colors">Contact</a>
+                <a href="/" className="text-accent font-medium px-3 py-2 text-sm">{t("navigation_home")}</a>
+                <a href="/blockchain" className="hover:text-accent px-3 py-2 text-sm font-medium transition-colors">{t("navigation_blockchain")}</a>
+                <a href="/about" className="hover:text-accent px-3 py-2 text-sm font-medium transition-colors">{t("navigation_about")}</a>
+                <a href="/contact" className="hover:text-accent px-3 py-2 text-sm font-medium transition-colors">{t("navigation_contact")}</a>
               </nav>
             </div>
             <ThemeToggleButton />
